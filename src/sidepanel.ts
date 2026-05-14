@@ -110,6 +110,7 @@ const DEFAULT_MODELS: Record<string, string> = {
 	anthropic: "claude-sonnet-4-6",
 	"azure-openai-responses": "gpt-5.2",
 	cerebras: "zai-glm-4.6",
+	deepseek: "deepseek-v4-flash",
 	"github-copilot": "gpt-4o",
 	google: "gemini-2.5-flash",
 	"google-antigravity": "gemini-3.1-pro-high",
@@ -141,7 +142,7 @@ async function selectDefaultModelForAvailableProvider() {
 		if (modelId) {
 			const model = getModel(provider as any, modelId);
 			if (model) {
-				agent.setModel(model);
+				agent.state.model = model;
 				await storage.settings.set("lastUsedModel", model);
 				await updateAuthLabel();
 				renderApp();
@@ -154,7 +155,7 @@ async function selectDefaultModelForAvailableProvider() {
 	for (const provider of providers) {
 		const models = getModels(provider as any);
 		if (models.length > 0) {
-			agent.setModel(models[0]);
+			agent.state.model = models[0];
 			await storage.settings.set("lastUsedModel", models[0]);
 			await updateAuthLabel();
 			renderApp();
@@ -473,7 +474,7 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 			ModelSelector.open(
 				agent.state.model,
 				(model) => {
-					agent.setModel(model);
+					agent.state.model = model;
 					chatPanel.agentInterface?.requestUpdate();
 					updateAuthLabel().catch(() => {});
 					renderApp();
@@ -508,7 +509,7 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 			// Only add if URL changed
 			if (!lastUrl || lastUrl !== tab.url) {
 				const navMessage = await createNavigationMessage(tab.url, tab.title || "Untitled", tab.favIconUrl, tab.id);
-				agent.appendMessage(navMessage);
+				agent.state.messages = [...agent.state.messages, navMessage];
 			}
 		},
 		onCostClick: () => {
@@ -547,18 +548,18 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 			extractImageTool.windowId = currentWindowId;
 
 			const tools: AgentTool<any, any>[] = [
-				navigateTool,
-				selectElementTool,
-				replTool,
-				skillTool,
-				extractDocumentTool,
-				extractImageTool,
+				navigateTool as AgentTool<any, any>,
+				selectElementTool as AgentTool<any, any>,
+				replTool as AgentTool<any, any>,
+				skillTool as AgentTool<any, any>,
+				extractDocumentTool as AgentTool<any, any>,
+				extractImageTool as AgentTool<any, any>,
 			];
 
 			// Conditionally add debugger tool if enabled
 			if (debuggerModeEnabled) {
 				const debuggerTool = new DebuggerTool();
-				tools.push(debuggerTool);
+				tools.push(debuggerTool as AgentTool<any, any>);
 			}
 
 			return tools;
@@ -607,46 +608,49 @@ const newSession = () => {
 // ============================================================================
 const renderApp = () => {
 	const appHtml = html`
-		<div class="w-full h-full flex flex-col bg-background text-foreground overflow-hidden">
-			<!-- Header -->
-			<div class="flex items-center justify-between border-b border-border shrink-0">
-				<div class="flex items-center gap-2 px-3 py-2">
-					${Button({
-						variant: "ghost",
-						size: "sm",
-						children: icon(History, "sm"),
-						onClick: () => {
-							SitegeistSessionListDialog.open(
-								(sessionId: string) => {
-									loadSession(sessionId);
-								},
-								(deletedSessionId: string) => {
-									// Only reload if the current session was deleted
-									if (deletedSessionId === currentSessionId) {
-										newSession();
-									}
-								},
-							);
-						},
-						title: "Sessions",
-					})}
-					${Button({
-						variant: "ghost",
-						size: "sm",
-						children: icon(Plus, "sm"),
-						onClick: newSession,
-						title: "New Session",
-					})}
-
-					${
-						currentTitle
-							? isEditingTitle
-								? html`<div class="flex items-center gap-2">
-									${Input({
-										type: "text",
-										value: currentTitle,
-										className: "text-sm w-48",
-										/*
+    <div
+      class="w-full h-full flex flex-col bg-background text-foreground overflow-hidden"
+    >
+      <!-- Header -->
+      <div
+        class="flex items-center justify-between border-b border-border shrink-0"
+      >
+        <div class="flex items-center gap-2 px-3 py-2">
+          ${Button({
+					variant: "ghost",
+					size: "sm",
+					children: icon(History, "sm"),
+					onClick: () => {
+						SitegeistSessionListDialog.open(
+							(sessionId: string) => {
+								loadSession(sessionId);
+							},
+							(deletedSessionId: string) => {
+								// Only reload if the current session was deleted
+								if (deletedSessionId === currentSessionId) {
+									newSession();
+								}
+							},
+						);
+					},
+					title: "Sessions",
+				})}
+          ${Button({
+					variant: "ghost",
+					size: "sm",
+					children: icon(Plus, "sm"),
+					onClick: newSession,
+					title: "New Session",
+				})}
+          ${
+					currentTitle
+						? isEditingTitle
+							? html`<div class="flex items-center gap-2">
+                  ${Input({
+							type: "text",
+							value: currentTitle,
+							className: "text-sm w-48",
+							/*
 										TODO need to add this in Input in mini-lit
 										onBlur: async (e: Event) => {
 											const newTitle = (e.target as HTMLInputElement).value.trim();
@@ -657,66 +661,80 @@ const renderApp = () => {
 											isEditingTitle = false;
 											renderApp();
 										},*/
-										onKeyDown: async (e: KeyboardEvent) => {
-											if (e.key === "Enter") {
-												const newTitle = (e.target as HTMLInputElement).value.trim();
-												if (newTitle && newTitle !== currentTitle && storage.sessions && currentSessionId) {
-													await storage.sessions.updateTitle(currentSessionId, newTitle);
-													currentTitle = newTitle;
-												}
-												isEditingTitle = false;
-												renderApp();
-											} else if (e.key === "Escape") {
-												isEditingTitle = false;
-												renderApp();
-											}
-										},
-									})}
-								</div>`
-								: html`<button
-									class="px-2 py-1 text-xs text-foreground hover:bg-secondary rounded transition-colors truncate max-w-[150px]"
-									@click=${() => {
-										isEditingTitle = true;
-										renderApp();
-										requestAnimationFrame(() => {
-											const input = document.body.querySelector('input[type="text"]') as HTMLInputElement;
-											if (input) {
-												input.focus();
-												input.select();
-											}
-										});
-									}}
-									title="Click to edit title"
-								>
-									${currentTitle}
-								</button>`
-							: html``
-					}
-				</div>
-				<div class="flex items-center gap-1 px-2">
-					${agent ? html`<span class="text-[10px] text-muted-foreground truncate max-w-[120px]" title="${agent.state.model.provider}/${agent.state.model.id}${authLabel ? ` (${authLabel})` : ""}">${agent.state.model.provider}${authLabel ? html` <span class="text-[9px] opacity-70">${authLabel}</span>` : ""}</span>` : ""}
-					<theme-toggle></theme-toggle>
-					${Button({
-						variant: "ghost",
-						size: "sm",
-						children: icon(Settings, "sm"),
-						onClick: () =>
-							SettingsDialog.open([
-								new ApiKeysOAuthTab(),
-								new CostsTab(),
-								new SkillsTab(),
-								new ProxyTab(),
-								new AboutTab(),
-							]),
-						title: "Settings",
-					})}
-				</div>
-			</div>
+							onKeyDown: async (e: KeyboardEvent) => {
+								if (e.key === "Enter") {
+									const newTitle = (e.target as HTMLInputElement).value.trim();
+									if (newTitle && newTitle !== currentTitle && storage.sessions && currentSessionId) {
+										await storage.sessions.updateTitle(currentSessionId, newTitle);
+										currentTitle = newTitle;
+									}
+									isEditingTitle = false;
+									renderApp();
+								} else if (e.key === "Escape") {
+									isEditingTitle = false;
+									renderApp();
+								}
+							},
+						})}
+                </div>`
+							: html`<button
+                  class="px-2 py-1 text-xs text-foreground hover:bg-secondary rounded transition-colors truncate max-w-[150px]"
+                  @click=${() => {
+							isEditingTitle = true;
+							renderApp();
+							requestAnimationFrame(() => {
+								const input = document.body.querySelector('input[type="text"]') as HTMLInputElement;
+								if (input) {
+									input.focus();
+									input.select();
+								}
+							});
+						}}
+                  title="Click to edit title"
+                >
+                  ${currentTitle}
+                </button>`
+						: html``
+				}
+        </div>
+        <div class="flex items-center gap-1 px-2">
+          ${
+					agent
+						? html`<span
+                class="text-[10px] text-muted-foreground truncate max-w-[120px]"
+                title="${agent.state.model.provider}/${agent.state.model.id}${authLabel ? ` (${authLabel})` : ""}"
+                >${agent.state.model.provider}${
+							authLabel
+								? html` <span class="text-[9px] opacity-70"
+                      >${authLabel}</span
+                    >`
+								: ""
+						}</span
+              >`
+						: ""
+				}
+          <theme-toggle></theme-toggle>
+          ${Button({
+					variant: "ghost",
+					size: "sm",
+					children: icon(Settings, "sm"),
+					onClick: () =>
+						SettingsDialog.open([
+							new ApiKeysOAuthTab(),
+							new CostsTab(),
+							new SkillsTab(),
+							new ProxyTab(),
+							new AboutTab(),
+						]),
+					title: "Settings",
+				})}
+        </div>
+      </div>
 
-			<!-- Chat Panel -->
-			${chatPanel}
-		</div>
-	`;
+      <!-- Chat Panel -->
+      ${chatPanel}
+    </div>
+  `;
 
 	render(appHtml, document.body);
 };
@@ -907,10 +925,12 @@ async function initApp() {
 	// Show loading
 	render(
 		html`
-			<div class="w-full h-full flex items-center justify-center bg-background text-foreground">
-				<div class="text-muted-foreground">Loading...</div>
-			</div>
-		`,
+      <div
+        class="w-full h-full flex items-center justify-center bg-background text-foreground"
+      >
+        <div class="text-muted-foreground">Loading...</div>
+      </div>
+    `,
 		document.body,
 	);
 
@@ -997,7 +1017,7 @@ async function initApp() {
 				await createAgent();
 				if (agent) {
 					const welcomeMessage = createWelcomeMessage(tutorials);
-					agent.appendMessage(welcomeMessage);
+					agent.state.messages = [...agent.state.messages, welcomeMessage];
 				}
 				renderApp();
 				return;
@@ -1030,7 +1050,7 @@ async function initApp() {
 	// Add welcome message for new sessions
 	if (agent) {
 		const welcomeMessage = createWelcomeMessage(tutorials);
-		agent.appendMessage(welcomeMessage);
+		agent.state.messages = [...agent.state.messages, welcomeMessage];
 	}
 
 	renderApp();

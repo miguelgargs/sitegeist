@@ -2,8 +2,8 @@ import "@mariozechner/mini-lit/dist/MarkdownBlock.js";
 import { icon } from "@mariozechner/mini-lit";
 import { Diff } from "@mariozechner/mini-lit/dist/Diff.js";
 import i18n from "@mariozechner/mini-lit/dist/i18n.js";
-import type { AgentTool } from "@mariozechner/pi-agent-core";
-import { StringEnum, type ToolResultMessage } from "@mariozechner/pi-ai";
+import type { AgentTool, AgentToolResult, AgentToolUpdateCallback } from "@mariozechner/pi-agent-core";
+import { type Static, StringEnum, type ToolResultMessage, Type } from "@mariozechner/pi-ai";
 import {
 	registerToolRenderer,
 	renderCollapsibleHeader,
@@ -12,7 +12,6 @@ import {
 	type ToolRenderer,
 	type ToolRenderResult,
 } from "@mariozechner/pi-web-ui";
-import { type Static, Type } from "@sinclair/typebox";
 import { html, type TemplateResult } from "lit";
 import { createRef, ref } from "lit/directives/ref.js";
 import { Sparkles } from "lucide";
@@ -200,7 +199,12 @@ export const skillTool: AgentTool<typeof skillParamsSchema, any> = {
 	name: "skill",
 	description: SKILL_TOOL_DESCRIPTION,
 	parameters: skillParamsSchema,
-	execute: async (_toolCallId: string, args: SkillParams) => {
+	execute: async (
+		_toolCallId: string,
+		args: SkillParams,
+		_signal?: AbortSignal,
+		_onUpdate?: AgentToolUpdateCallback<any>,
+	): Promise<AgentToolResult<any>> => {
 		const skillsRepo = getSkills();
 		const [tab] = await chrome.tabs.query({
 			active: true,

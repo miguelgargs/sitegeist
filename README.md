@@ -31,9 +31,17 @@ Install dependencies in each repo:
 (cd ../mini-lit && npm install)
 (cd ../pi-mono && npm install)
 npm install
+(cd site && npm install)
 ```
 
 `npm install` sets up the Husky pre-commit hook automatically.
+
+Build the sibling packages (required before first run):
+
+```bash
+(cd ../mini-lit && npm run build)
+(cd ../pi-mono && npm run build)
+```
 
 Start all dev watchers (mini-lit, pi-mono, sitegeist extension, marketing site):
 

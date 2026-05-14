@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- TypeScript type errors caused by `@sinclair/typebox` vs `typebox` v1.x version mismatch
+- `Agent` API changes: `setModel`/`replaceMessages`/`appendMessage` replaced by `agent.state.*` property access
+- Tool `execute` method signatures updated to match `AgentTool` interface (added `onUpdate` parameter, fixed return types)
+
 ## [1.0.0] - 2026-03-15
 
 ### Added

@@ -1,6 +1,7 @@
 import { i18n, icon } from "@mariozechner/mini-lit";
-import type { AgentTool } from "@mariozechner/pi-agent-core";
+import type { AgentTool, AgentToolResult, AgentToolUpdateCallback } from "@mariozechner/pi-agent-core";
 import type { ToolResultMessage } from "@mariozechner/pi-ai";
+import { type Static, Type } from "@mariozechner/pi-ai";
 import {
 	registerToolRenderer,
 	renderCollapsibleHeader,
@@ -8,7 +9,6 @@ import {
 	type ToolRenderer,
 	type ToolRenderResult,
 } from "@mariozechner/pi-web-ui";
-import { type Static, Type } from "@sinclair/typebox";
 import { html } from "lit";
 import { createRef, ref } from "lit/directives/ref.js";
 import { Loader2, MousePointer2 } from "lucide";
@@ -531,7 +531,8 @@ export class AskUserWhichElementTool implements AgentTool<typeof selectElementSc
 		_toolCallId: string,
 		args: SelectElementParams,
 		signal?: AbortSignal,
-	): Promise<{ content: Array<{ type: "text"; text: string }>; details: SelectElementResult }> {
+		_onUpdate?: AgentToolUpdateCallback<SelectElementResult>,
+	): Promise<AgentToolResult<SelectElementResult>> {
 		try {
 			// Check if already aborted
 			if (signal?.aborted) {

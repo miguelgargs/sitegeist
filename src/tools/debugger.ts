@@ -1,5 +1,5 @@
-import type { AgentTool } from "@mariozechner/pi-agent-core";
-import { StringEnum, type ToolResultMessage } from "@mariozechner/pi-ai";
+import type { AgentTool, AgentToolResult, AgentToolUpdateCallback } from "@mariozechner/pi-agent-core";
+import { type Static, StringEnum, type ToolResultMessage, Type } from "@mariozechner/pi-ai";
 import {
 	registerToolRenderer,
 	renderCollapsibleHeader,
@@ -7,7 +7,6 @@ import {
 	type ToolRenderer,
 	type ToolRenderResult,
 } from "@mariozechner/pi-web-ui";
-import { type Static, Type } from "@sinclair/typebox";
 import { html } from "lit";
 import { createRef, ref } from "lit/directives/ref.js";
 import { Bug } from "lucide";
@@ -68,7 +67,8 @@ CRITICAL: Use browserjs() and repl tool for DOM manipulation. Use this ONLY for 
 		_toolCallId: string,
 		args: DebuggerParams,
 		signal?: AbortSignal,
-	): Promise<{ content: Array<{ type: "text"; text: string }>; details: DebuggerResult }> {
+		_onUpdate?: AgentToolUpdateCallback<DebuggerResult>,
+	): Promise<AgentToolResult<DebuggerResult>> {
 		if (signal?.aborted) {
 			throw new Error("Debugger command aborted");
 		}
@@ -112,7 +112,7 @@ CRITICAL: Use browserjs() and repl tool for DOM manipulation. Use this ONLY for 
 					const cookies = await chrome.cookies.getAll({ url: tab.url });
 					const output = cookies.map((c: { name: string; value: string }) => `${c.name}: ${c.value}`).join("\n");
 					const details: DebuggerResult = { value: cookies };
-					return { content: [{ type: "text", text: output }], details };
+					return { content: [{ type: "text", text: output }], details, terminate: false };
 				} catch (err: any) {
 					throw new Error(`Failed to get cookies: ${err.message}`);
 				}
@@ -153,7 +153,7 @@ CRITICAL: Use browserjs() and repl tool for DOM manipulation. Use this ONLY for 
 					output = JSON.stringify(result, null, 2);
 				}
 
-				return { content: [{ type: "text", text: output }], details };
+				return { content: [{ type: "text", text: output }], details, terminate: false };
 			}
 
 			throw new Error(`Unknown action: ${args.action}`);
