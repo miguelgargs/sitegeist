@@ -50,7 +50,11 @@ import { AskUserWhichElementTool, skillTool } from "./tools/index.js";
 import { NativeInputEventsRuntimeProvider } from "./tools/NativeInputEventsRuntimeProvider.js";
 import { isToolNavigating, NavigateTool } from "./tools/navigate.js";
 import { createReplTool } from "./tools/repl/repl.js";
-import { BrowserJsRuntimeProvider, NavigateRuntimeProvider } from "./tools/repl/runtime-providers.js";
+import {
+	BrowserJsRuntimeProvider,
+	LocalFetchRuntimeProvider,
+	NavigateRuntimeProvider,
+} from "./tools/repl/runtime-providers.js";
 import * as port from "./utils/port.js";
 import "./utils/i18n-extension.js";
 import "./utils/live-reload.js";
@@ -541,6 +545,7 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 					...pageProviders, // Make them available in REPL context too
 					new BrowserJsRuntimeProvider(pageProviders), // Pass to page context
 					new NavigateRuntimeProvider(navigateTool),
+					new LocalFetchRuntimeProvider(), // Proxy fetch to localhost APIs
 				];
 			};
 

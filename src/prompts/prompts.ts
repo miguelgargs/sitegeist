@@ -266,6 +266,32 @@ await createOrUpdateArtifact('results.json', results);
 \`\`\`
 `;
 
+export const LOCAL_FETCH_RUNTIME_PROVIDER_DESCRIPTION = `
+### localFetch
+
+Make HTTP requests to localhost APIs from REPL scripts. Requests are proxied through the extension background worker to bypass sandbox CSP restrictions.
+
+#### Functions
+- await localFetch(url, options?) - Fetch from localhost. Returns { status, statusText, headers, body }
+  - url: Full URL starting with http://localhost or http://127.0.0.1 (any port)
+  - options: { method, headers, body } (same as fetch API)
+
+#### Example
+\`\`\`javascript
+// GET request
+const response = await localFetch('http://localhost:3000/api/data');
+console.log(response.body);
+
+// POST with JSON body
+const result = await localFetch('http://127.0.0.1:5000/api/jobs', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ title: 'Software Engineer', company: 'Acme' })
+});
+console.log(result.status, result.body);
+\`\`\`
+`;
+
 // ============================================================================
 // Navigate Tool
 // ============================================================================

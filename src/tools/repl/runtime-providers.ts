@@ -1,6 +1,7 @@
 import { ConsoleRuntimeProvider, RUNTIME_MESSAGE_ROUTER, type SandboxRuntimeProvider } from "@mariozechner/pi-web-ui";
 import {
 	BROWSERJS_RUNTIME_PROVIDER_DESCRIPTION,
+	LOCAL_FETCH_RUNTIME_PROVIDER_DESCRIPTION,
 	NAVIGATE_RUNTIME_PROVIDER_DESCRIPTION,
 } from "../../prompts/prompts.js";
 import { getSitegeistStorage } from "../../storage/app-storage.js";
@@ -417,5 +418,124 @@ export class NavigateRuntimeProvider implements SandboxRuntimeProvider {
 
 	getDescription(): string {
 		return NAVIGATE_RUNTIME_PROVIDER_DESCRIPTION;
+	}
+}
+
+/**
+ * LocalFetchRuntimeProvider
+ *
+ * Provides the localFetch() helper to REPL scripts, which proxies HTTP requests
+ * to localhost APIs through the extension's sidepanel context (bypassing sandbox CSP).
+ *
+ * Usage in REPL:
+ *   const response = await localFetch('http://localhost:3000/api/data');
+ *   const result = await localFetch('http://127.0.0.1:5000/api/jobs', { method: 'POST', body: '{}' });
+ */
+export class LocalFetchRuntimeProvider implements SandboxRuntimeProvider {
+	getData(): Record<string, any> {
+		return {};
+	}
+
+	getRuntime(): (sandboxId: string) => void {
+		return (_sandboxId: string) => {
+			const sendRuntimeMessage = (window as any).sendRuntimeMessage;
+			if (typeof sendRuntimeMessage !== "function") {
+				throw new Error("sendRuntimeMessage is not available in this context");
+			}
+
+			(window as any).localFetch = async (url: string, options?: any): Promise<any> => {
+				if (typeof url !== "string") {
+					throw new Error("First argument to localFetch() must be a URL string");
+				}
+
+				const response = await sendRuntimeMessage({
+					type: "local-fetch",
+					url,
+					options: options || {},
+				});
+
+				if (!response.success) {
+					throw new Error(response.error || "localFetch() request failed");
+				}
+
+				return response.result;
+			};
+		};
+	}
+
+	async handleMessage(message: any, respond: (response: any) => void): Promise<void> {
+		if (message.type !== "local-fetch") {
+			return;
+		}
+
+		const { url, options } = message;
+
+		try {
+			const parsed = new URL(url);
+			const isLocalhost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+
+			if (!isLocalhost) {
+				respond({
+					success: false,
+					error: `localFetch() only allows requests to localhost or 127.0.0.1. Got: ${parsed.hostname}`,
+				});
+				return;
+			}
+
+			if (parsed.protocol !== "http:") {
+				respond({
+					success: false,
+					error: `localFetch() only allows http:// protocol for localhost. Got: ${parsed.protocol}`,
+				});
+				return;
+			}
+
+			const fetchOptions: RequestInit = {
+				method: options.method || "GET",
+			};
+
+			if (options.headers) {
+				fetchOptions.headers = options.headers;
+			}
+
+			if (options.body) {
+				fetchOptions.body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
+			}
+
+			const response = await fetch(url, fetchOptions);
+
+			const contentType = response.headers.get("content-type") || "";
+			let body: any;
+			if (contentType.includes("application/json")) {
+				body = await response.json();
+			} else {
+				body = await response.text();
+			}
+
+			const headers: Record<string, string> = {};
+			response.headers.forEach((value, key) => {
+				headers[key] = value;
+			});
+
+			respond({
+				success: true,
+				result: {
+					status: response.status,
+					statusText: response.statusText,
+					headers,
+					body,
+				},
+			});
+		} catch (error: any) {
+			console.error("[LocalFetchRuntimeProvider] Error:", error);
+			respond({
+				success: false,
+				error: error.message || String(error),
+			});
+		}
+	}
+
+	getDescription(): string {
+		return LOCAL_FETCH_RUNTIME_PROVIDER_DESCRIPTION;
 	}
 }
