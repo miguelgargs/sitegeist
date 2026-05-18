@@ -62,6 +62,119 @@ import "./utils/i18n-extension.js";
 import "./utils/live-reload.js";
 import { tutorials } from "./tutorials.js";
 
+// ============================================================================
+// DEBUG: DeepSeek streaming hang investigation
+// ============================================================================
+const DEBUG_STREAM = true;
+const STREAM_HANG_TIMEOUT_MS = 60_000;
+
+let _debugStreamEventCount = 0;
+let _debugLastEventTime = 0;
+let _debugHangTimer: ReturnType<typeof setTimeout> | undefined;
+let _debugStreamStartTime = 0;
+
+function debugLog(tag: string, ...args: unknown[]) {
+	if (!DEBUG_STREAM) return;
+	const elapsed = _debugStreamStartTime ? `+${((Date.now() - _debugStreamStartTime) / 1000).toFixed(1)}s` : "";
+	console.log(`[DBG:${tag}] ${elapsed}`, ...args);
+}
+
+function debugResetHangTimer(context: string) {
+	if (_debugHangTimer) clearTimeout(_debugHangTimer);
+	_debugHangTimer = setTimeout(() => {
+		console.error(
+			`[DBG:HANG] No stream event for ${STREAM_HANG_TIMEOUT_MS / 1000}s after: ${context}. isStreaming=${agent?.state.isStreaming}, eventCount=${_debugStreamEventCount}`,
+		);
+		const sm = agent?.state.streamingMessage as any;
+		console.error(
+			"[DBG:HANG] streamingMessage:",
+			sm
+				? {
+						role: sm.role,
+						contentBlocks: sm.content?.length,
+						stopReason: sm.stopReason,
+					}
+				: null,
+		);
+	}, STREAM_HANG_TIMEOUT_MS);
+}
+
+function createDebugStreamFn(innerStreamFn: (...args: any[]) => any) {
+	return async (model: any, context: any, options: any) => {
+		const provider = model.provider;
+		const modelId = model.id;
+		_debugStreamEventCount = 0;
+		_debugLastEventTime = Date.now();
+		_debugStreamStartTime = Date.now();
+
+		debugLog("STREAM", `Starting stream: ${provider}/${modelId}`);
+		debugLog("STREAM", `Messages in context: ${context.messages?.length}, tools: ${context.tools?.length}`);
+
+		const stream = await innerStreamFn(model, context, options);
+
+		// Wrap the async iterator to log events
+		const originalIterator = stream[Symbol.asyncIterator].bind(stream);
+		stream[Symbol.asyncIterator] = () => {
+			const iter = originalIterator();
+			return {
+				async next() {
+					debugResetHangTimer(`awaiting chunk #${_debugStreamEventCount + 1}`);
+					const result = await iter.next();
+
+					if (result.done) {
+						debugLog(
+							"STREAM",
+							`Iterator done after ${_debugStreamEventCount} events, ${((Date.now() - _debugStreamStartTime) / 1000).toFixed(1)}s`,
+						);
+						if (_debugHangTimer) clearTimeout(_debugHangTimer);
+						return result;
+					}
+
+					_debugStreamEventCount++;
+					_debugLastEventTime = Date.now();
+					const event = result.value;
+
+					// Log key events, skip noisy deltas
+					if (event.type === "start") {
+						debugLog("STREAM", "Event: start");
+					} else if (event.type === "thinking_start") {
+						debugLog("STREAM", "Event: thinking_start");
+					} else if (event.type === "thinking_end") {
+						const thinkLen = event.content?.length ?? 0;
+						debugLog("STREAM", `Event: thinking_end (${thinkLen} chars)`);
+					} else if (event.type === "text_start") {
+						debugLog("STREAM", "Event: text_start");
+					} else if (event.type === "text_end") {
+						const textLen = event.content?.length ?? 0;
+						debugLog("STREAM", `Event: text_end (${textLen} chars)`);
+					} else if (event.type === "toolcall_start") {
+						debugLog("STREAM", `Event: toolcall_start`);
+					} else if (event.type === "toolcall_end") {
+						debugLog("STREAM", `Event: toolcall_end name=${event.toolCall?.name}`);
+					} else if (event.type === "done") {
+						debugLog("STREAM", `Event: done, reason=${event.reason}, stopReason=${event.message?.stopReason}`);
+						if (_debugHangTimer) clearTimeout(_debugHangTimer);
+					} else if (event.type === "error") {
+						debugLog("STREAM", `Event: error, reason=${event.reason}, errorMessage=${event.error?.errorMessage}`);
+						if (_debugHangTimer) clearTimeout(_debugHangTimer);
+					}
+					// Log delta count every 50 events
+					if (_debugStreamEventCount % 50 === 0) {
+						debugLog("STREAM", `... ${_debugStreamEventCount} events so far`);
+					}
+
+					return result;
+				},
+				return: iter.return?.bind(iter),
+				throw: iter.throw?.bind(iter),
+			};
+		};
+
+		return stream;
+	};
+}
+// ============================================================================
+
 // Register custom message renderers
 registerNavigationRenderer();
 registerExtractImageRenderer();
@@ -395,11 +508,27 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 		},
 		convertToLlm: browserMessageTransformer,
 		toolExecution: "sequential",
-		streamFn: createStreamFn(async () => {
-			const enabled = await storage.settings.get<boolean>("proxy.enabled");
-			if (!enabled) return undefined;
-			return (await storage.settings.get<string>("proxy.url")) || undefined;
-		}),
+		streamFn: createDebugStreamFn(
+			createStreamFn(async () => {
+				const enabled = await storage.settings.get<boolean>("proxy.enabled");
+				if (!enabled) return undefined;
+				return (await storage.settings.get<string>("proxy.url")) || undefined;
+			}),
+		),
+		onPayload: (params: any, model: any) => {
+			debugLog("API", `Payload to ${model.provider}/${model.id}:`, {
+				stream: params.stream,
+				thinking: params.thinking,
+				reasoning_effort: params.reasoning_effort,
+				stream_options: params.stream_options,
+				tool_count: params.tools?.length ?? 0,
+				message_count: params.messages?.length ?? 0,
+			});
+			return params;
+		},
+		onResponse: (response: any, model: any) => {
+			debugLog("API", `Response from ${model.provider}/${model.id}: status=${response.status}`);
+		},
 		getApiKey: async (provider: string) => {
 			const stored = await storage.providerKeys.get(provider);
 			if (!stored) return undefined;
@@ -413,6 +542,30 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 
 	if (shouldSave) {
 		agentUnsubscribe = agent.subscribe((event: AgentEvent) => {
+			// DEBUG: Log agent events with timing
+			if (event.type !== "message_update") {
+				debugLog(
+					"AGENT",
+					`Event: ${event.type}, isStreaming=${agent.state.isStreaming}, messages=${agent.state.messages.length}`,
+				);
+			}
+			if (event.type === "agent_end") {
+				debugLog(
+					"AGENT",
+					"Agent loop finished. Total stream time:",
+					((Date.now() - _debugStreamStartTime) / 1000).toFixed(1),
+					"s",
+				);
+				if (_debugHangTimer) clearTimeout(_debugHangTimer);
+			}
+			if (event.type === "message_end") {
+				const msg = (event as any).message;
+				debugLog(
+					"AGENT",
+					`message_end: role=${msg?.role}, stopReason=${msg?.stopReason}, error=${msg?.errorMessage ?? "none"}, contentBlocks=${msg?.content?.length}`,
+				);
+			}
+
 			const messages = agent.state.messages;
 
 			storage.settings

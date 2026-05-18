@@ -137,8 +137,6 @@ For each selected job, create an application in FindMeAJob with the job details 
 **Step 5: Tailor Materials**
 Ask if I have a CV stored in FindMeAJob (list CVs). If yes, offer to create a tailored cover letter for each application based on the job description and my CV. Save cover letters via the API and link them to the applications.
 
-**Step 6: Dashboard**
-Finally, list all my applications and present a status dashboard showing where each application stands. Offer to help me update statuses, add contacts (recruiters/hiring managers found on the job pages), or tag applications for organization.
 
 Throughout the process, explain what you're doing at each step so I can learn how the FindMeAJob skill works.`,
 	},
@@ -160,9 +158,6 @@ For each selected job, create an application in StepstoneFindMeAJob with the job
 
 **Step 5: Tailor Materials**
 Ask if I have a CV stored in StepstoneFindMeAJob (list CVs). If yes, offer to create a tailored cover letter for each application based on the job description and my CV. Save cover letters via the API and link them to the applications.
-
-**Step 6: Dashboard**
-Finally, list all my applications and present a status dashboard showing where each application stands. Offer to help me update statuses, add contacts (recruiters/hiring managers found on the job pages), or tag applications for organization.
 
 Throughout the process, explain what you're doing at each step so I can learn how the StepstoneFindMeAJob skill works.`,
 	},
