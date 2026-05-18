@@ -118,4 +118,52 @@ Ask what they'd like to try or explore next.`,
 		prompt:
 			"Check my last 3 LinkedIn posts for unanswered comments and give me suggestions what I could answer. For each unanswered comment, consider the original post content and the full comment thread context to generate relevant replies. Suggest 2-3 response options with different tones (professional, casual, humorous) so I can pick what fits best.",
 	},
+	{
+		label: "LinkedIn Job Search",
+		prompt: `Help me find and track job applications from LinkedIn using the FindMeAJob skill. Here's the workflow:
+
+**Step 1: Set Up**
+First, check that the FindMeAJob API is reachable (use the health operation). If it's not running, tell me to start it and wait. Then list existing statuses and sources to see what's already configured. If there's no "LinkedIn" source yet, create one.
+
+**Step 2: Browse LinkedIn Jobs**
+Ask me what kind of role I'm looking for (title, location, remote/hybrid/onsite). Then navigate to LinkedIn's job search page and search for matching positions. Extract the top 5-10 results including: job title, company name, location, and the LinkedIn job URL.
+
+**Step 3: Review & Select**
+Present the jobs you found in a clean list. Ask me which ones I want to apply to. For each job I select, navigate to its LinkedIn page and extract the full job description, requirements, and any salary info.
+
+**Step 4: Track Applications**
+For each selected job, create an application in FindMeAJob with the job details (title, company, URL, description). Set the source to LinkedIn. Show me a summary of what was tracked.
+
+**Step 5: Tailor Materials**
+Ask if I have a CV stored in FindMeAJob (list CVs). If yes, offer to create a tailored cover letter for each application based on the job description and my CV. Save cover letters via the API and link them to the applications.
+
+**Step 6: Dashboard**
+Finally, list all my applications and present a status dashboard showing where each application stands. Offer to help me update statuses, add contacts (recruiters/hiring managers found on the job pages), or tag applications for organization.
+
+Throughout the process, explain what you're doing at each step so I can learn how the FindMeAJob skill works.`,
+	},
+	{
+		label: "Stepstone Job Search",
+		prompt: `Help me find and track job applications from Stepstone using the StepstoneFindMeAJob skill. Here's the workflow:
+
+**Step 1: Set Up**
+First, check that the StepstoneFindMeAJob API is reachable (use the health operation). If it's not running, tell me to start it and wait. Then list existing statuses and sources to see what's already configured. If there's no "Stepstone" source yet, create one.
+
+**Step 2: Browse Stepstone Jobs**
+Ask me what kind of role I'm looking for (title, location, remote/hybrid/onsite). Then navigate to Stepstone's job search page and search for matching positions. Extract the top 5-10 results including: job title, company name, location, and the Stepstone job URL.
+
+**Step 3: Review & Select**
+Present the jobs you found in a clean list. Ask me which ones I want to apply to. For each job I select, navigate to its Stepstone page and extract the full job description, requirements, and any salary info.
+
+**Step 4: Track Applications**
+For each selected job, create an application in StepstoneFindMeAJob with the job details (title, company, URL, description). Set the source to Stepstone. Show me a summary of what was tracked.
+
+**Step 5: Tailor Materials**
+Ask if I have a CV stored in StepstoneFindMeAJob (list CVs). If yes, offer to create a tailored cover letter for each application based on the job description and my CV. Save cover letters via the API and link them to the applications.
+
+**Step 6: Dashboard**
+Finally, list all my applications and present a status dashboard showing where each application stands. Offer to help me update statuses, add contacts (recruiters/hiring managers found on the job pages), or tag applications for organization.
+
+Throughout the process, explain what you're doing at each step so I can learn how the StepstoneFindMeAJob skill works.`,
+	},
 ];

@@ -46,6 +46,7 @@ import { SYSTEM_PROMPT } from "./prompts/prompts.js";
 import { SitegeistAppStorage } from "./storage/app-storage.js";
 import { DebuggerTool } from "./tools/debugger.js";
 import { ExtractImageTool, registerExtractImageRenderer } from "./tools/extract-image.js";
+import { findmeajobTool } from "./tools/findmeajob.js";
 import { AskUserWhichElementTool, skillTool } from "./tools/index.js";
 import { NativeInputEventsRuntimeProvider } from "./tools/NativeInputEventsRuntimeProvider.js";
 import { isToolNavigating, NavigateTool } from "./tools/navigate.js";
@@ -55,6 +56,7 @@ import {
 	LocalFetchRuntimeProvider,
 	NavigateRuntimeProvider,
 } from "./tools/repl/runtime-providers.js";
+import { stepstonefindmeajobTool } from "./tools/stepstonefindmeajob.js";
 import * as port from "./utils/port.js";
 import "./utils/i18n-extension.js";
 import "./utils/live-reload.js";
@@ -557,6 +559,8 @@ const createAgent = async (initialState?: Partial<AgentState>, shouldSave = true
 				selectElementTool as AgentTool<any, any>,
 				replTool as AgentTool<any, any>,
 				skillTool as AgentTool<any, any>,
+				findmeajobTool as AgentTool<any, any>,
+				stepstonefindmeajobTool as AgentTool<any, any>,
 				extractDocumentTool as AgentTool<any, any>,
 				extractImageTool as AgentTool<any, any>,
 			];

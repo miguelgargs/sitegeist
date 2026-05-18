@@ -536,3 +536,167 @@ You see code, users see webpages. Their visual feedback is essential.
 - Never save a skill until ALL capabilities tested with user
 - Use plain language: "This clicks the button" not "This calls click()"
 - Focus on visual results: "The message should send" not "The function should execute"`;
+
+// ============================================================================
+// FindMeAJob Tool
+// ============================================================================
+
+export const FINDMEAJOB_TOOL_DESCRIPTION = `# FindMeAJob
+
+Job application tracker API. Use this tool to manage job applications, CVs, cover letters, contacts, and more.
+
+## Operations
+
+### Statuses
+- **list_statuses** — GET /statuses → StatusOut[]
+- **create_status** — POST /statuses, body: { name (required), description?, position? }
+- **update_status** — PATCH /statuses/{status_id}, path_params: { status_id }, body: { name?, description?, position? }
+
+### Sources
+- **list_sources** — GET /sources → SourceOut[]
+- **create_source** — POST /sources, body: { name (required) }
+
+### CVs
+- **list_cvs** — GET /cvs, query_params: { q? } → CVOut[]
+- **create_cv** — POST /cvs, body: { title (required), file_hash?, content? }
+- **get_cv** — GET /cvs/{cv_id}, path_params: { cv_id }
+- **update_cv** — PATCH /cvs/{cv_id}, path_params: { cv_id }, body: { title?, file_hash?, content? }
+- **delete_cv** — DELETE /cvs/{cv_id}, path_params: { cv_id }
+
+### Cover Letters
+- **list_cover_letters** — GET /cover-letters, query_params: { q? } → CoverLetterOut[]
+- **create_cover_letter** — POST /cover-letters, body: { title (required), file_hash?, content? }
+- **get_cover_letter** — GET /cover-letters/{cl_id}, path_params: { cl_id }
+- **update_cover_letter** — PATCH /cover-letters/{cl_id}, path_params: { cl_id }, body: { title?, file_hash?, content? }
+- **delete_cover_letter** — DELETE /cover-letters/{cl_id}, path_params: { cl_id }
+
+### Applications
+- **list_applications** — GET /applications, query_params: { status?, source?, priority? (1-5), tag?, work_mode?, q?, limit? (1-200, default 50), offset? }
+  Returns: { data: ApplicationOut[], total, limit, offset }
+- **create_application** — POST /applications, body: { company_name (required), position_title (required), status_id (required), job_url?, job_description?, location?, work_mode? (remote|hybrid|on-site), salary_min?, salary_max?, salary_currency?, salary_period? (yearly|monthly|hourly), discovered_at?, applied_at?, deadline?, priority? (1-5), notes?, source_id?, cv_id?, cover_letter_id?, tags? (string[]) }
+- **get_application** — GET /applications/{app_id}, path_params: { app_id }
+- **update_application** — PATCH /applications/{app_id}, path_params: { app_id }, body: (any ApplicationCreate field)
+- **delete_application** — DELETE /applications/{app_id}, path_params: { app_id }
+
+### Application Status History
+- **get_status_history** — GET /applications/{app_id}/status-history, path_params: { app_id }
+- **transition_status** — POST /applications/{app_id}/status, path_params: { app_id }, body: { status_id (required), note? }
+
+### Application Contacts
+- **list_application_contacts** — GET /applications/{app_id}/contacts, path_params: { app_id }
+- **link_contact** — POST /applications/{app_id}/contacts, path_params: { app_id }, body: { contact_id (required), role?, notes? }
+- **unlink_contact** — DELETE /applications/{app_id}/contacts/{contact_id}, path_params: { app_id, contact_id }
+
+### Application Tags
+- **list_application_tags** — GET /applications/{app_id}/tags, path_params: { app_id }
+- **add_tag** — POST /applications/{app_id}/tags, path_params: { app_id }, body: { name: "tag-name" }
+- **remove_tag** — DELETE /applications/{app_id}/tags/{tag_id}, path_params: { app_id, tag_id }
+
+### Contacts
+- **list_contacts** — GET /contacts, query_params: { company? }
+- **create_contact** — POST /contacts, body: { name (required), company_name?, email?, phone?, linkedin_url?, notes? }
+- **get_contact** — GET /contacts/{contact_id}, path_params: { contact_id }
+- **update_contact** — PATCH /contacts/{contact_id}, path_params: { contact_id }, body: (any ContactCreate field)
+- **delete_contact** — DELETE /contacts/{contact_id}, path_params: { contact_id }
+
+### Tags
+- **list_tags** — GET /tags → TagOut[]
+- **create_tag** — POST /tags, body: { name (required) }
+
+### Search
+- **unified_search** — GET /search, query_params: { q (required) }
+
+### Health
+- **health** — GET /health
+
+## Examples
+
+{ operation: "list_applications", query_params: { status: "applied", limit: 10 } }
+{ operation: "create_application", body: { company_name: "Acme", position_title: "Engineer", status_id: 1 } }
+{ operation: "get_application", path_params: { app_id: 42 } }
+{ operation: "update_application", path_params: { app_id: 42 }, body: { priority: 5, notes: "Great fit" } }
+{ operation: "transition_status", path_params: { app_id: 42 }, body: { status_id: 3, note: "Phone screen scheduled" } }
+{ operation: "unified_search", query_params: { q: "senior engineer" } }
+`;
+
+// ============================================================================
+// StepstoneFindMeAJob Tool
+// ============================================================================
+
+export const STEPSTONEFINDMEAJOB_TOOL_DESCRIPTION = `# StepstoneFindMeAJob
+
+Stepstone job application tracker API. Use this tool to manage job applications, CVs, cover letters, contacts, and more via Stepstone.
+
+## Operations
+
+### Statuses
+- **list_statuses** — GET /statuses → StatusOut[]
+- **create_status** — POST /statuses, body: { name (required), description?, position? }
+- **update_status** — PATCH /statuses/{status_id}, path_params: { status_id }, body: { name?, description?, position? }
+
+### Sources
+- **list_sources** — GET /sources → SourceOut[]
+- **create_source** — POST /sources, body: { name (required) }
+
+### CVs
+- **list_cvs** — GET /cvs, query_params: { q? } → CVOut[]
+- **create_cv** — POST /cvs, body: { title (required), file_hash?, content? }
+- **get_cv** — GET /cvs/{cv_id}, path_params: { cv_id }
+- **update_cv** — PATCH /cvs/{cv_id}, path_params: { cv_id }, body: { title?, file_hash?, content? }
+- **delete_cv** — DELETE /cvs/{cv_id}, path_params: { cv_id }
+
+### Cover Letters
+- **list_cover_letters** — GET /cover-letters, query_params: { q? } → CoverLetterOut[]
+- **create_cover_letter** — POST /cover-letters, body: { title (required), file_hash?, content? }
+- **get_cover_letter** — GET /cover-letters/{cl_id}, path_params: { cl_id }
+- **update_cover_letter** — PATCH /cover-letters/{cl_id}, path_params: { cl_id }, body: { title?, file_hash?, content? }
+- **delete_cover_letter** — DELETE /cover-letters/{cl_id}, path_params: { cl_id }
+
+### Applications
+- **list_applications** — GET /applications, query_params: { status?, source?, priority? (1-5), tag?, work_mode?, q?, limit? (1-200, default 50), offset? }
+  Returns: { data: ApplicationOut[], total, limit, offset }
+- **create_application** — POST /applications, body: { company_name (required), position_title (required), status_id (required), job_url?, job_description?, location?, work_mode? (remote|hybrid|on-site), salary_min?, salary_max?, salary_currency?, salary_period? (yearly|monthly|hourly), discovered_at?, applied_at?, deadline?, priority? (1-5), notes?, source_id?, cv_id?, cover_letter_id?, tags? (string[]) }
+- **get_application** — GET /applications/{app_id}, path_params: { app_id }
+- **update_application** — PATCH /applications/{app_id}, path_params: { app_id }, body: (any ApplicationCreate field)
+- **delete_application** — DELETE /applications/{app_id}, path_params: { app_id }
+
+### Application Status History
+- **get_status_history** — GET /applications/{app_id}/status-history, path_params: { app_id }
+- **transition_status** — POST /applications/{app_id}/status, path_params: { app_id }, body: { status_id (required), note? }
+
+### Application Contacts
+- **list_application_contacts** — GET /applications/{app_id}/contacts, path_params: { app_id }
+- **link_contact** — POST /applications/{app_id}/contacts, path_params: { app_id }, body: { contact_id (required), role?, notes? }
+- **unlink_contact** — DELETE /applications/{app_id}/contacts/{contact_id}, path_params: { app_id, contact_id }
+
+### Application Tags
+- **list_application_tags** — GET /applications/{app_id}/tags, path_params: { app_id }
+- **add_tag** — POST /applications/{app_id}/tags, path_params: { app_id }, body: { name: "tag-name" }
+- **remove_tag** — DELETE /applications/{app_id}/tags/{tag_id}, path_params: { app_id, tag_id }
+
+### Contacts
+- **list_contacts** — GET /contacts, query_params: { company? }
+- **create_contact** — POST /contacts, body: { name (required), company_name?, email?, phone?, linkedin_url?, notes? }
+- **get_contact** — GET /contacts/{contact_id}, path_params: { contact_id }
+- **update_contact** — PATCH /contacts/{contact_id}, path_params: { contact_id }, body: (any ContactCreate field)
+- **delete_contact** — DELETE /contacts/{contact_id}, path_params: { contact_id }
+
+### Tags
+- **list_tags** — GET /tags → TagOut[]
+- **create_tag** — POST /tags, body: { name (required) }
+
+### Search
+- **unified_search** — GET /search, query_params: { q (required) }
+
+### Health
+- **health** — GET /health
+
+## Examples
+
+{ operation: "list_applications", query_params: { status: "applied", limit: 10 } }
+{ operation: "create_application", body: { company_name: "Acme", position_title: "Engineer", status_id: 1 } }
+{ operation: "get_application", path_params: { app_id: 42 } }
+{ operation: "update_application", path_params: { app_id: 42 }, body: { priority: 5, notes: "Great fit" } }
+{ operation: "transition_status", path_params: { app_id: 42 }, body: { status_id: 3, note: "Phone screen scheduled" } }
+{ operation: "unified_search", query_params: { q: "senior engineer" } }
+`;
